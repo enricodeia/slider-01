@@ -1,3 +1,6 @@
+// Debug flag - set to true to see diagnostic info
+const DEBUG = true;
+
 // Store global variables
 const store = {
   ww: window.innerWidth,
@@ -11,7 +14,7 @@ const store = {
     || navigator.userAgent.match(/Windows Phone/i)
 };
 
-// Configuration for the slider and effects
+// Configuration
 const config = {
   speed: 2,
   ease: 0.075,
@@ -21,38 +24,26 @@ const config = {
   scaleMax: 1
 };
 
-// Sample data for slides with placeholder images
+// Simple slides data with embedded SVGs
 const slidesData = [
   { 
-    image: "/api/placeholder/800/600?text=Mountains",
+    image: "https://images.pexels.com/photos/41951/solar-system-emergence-spitzer-telescope-telescope-41951.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+    title: "Space"
+  },
+  { 
+    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23444444'/%3E%3Cpolygon points='400,150 600,450 200,450' fill='%23666666'/%3E%3Cpolygon points='500,200 700,450 300,450' fill='%23555555'/%3E%3Ctext x='400' y='300' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EMountains%3C/text%3E%3C/svg%3E",
     title: "Mountains"
   },
   { 
-    image: "/api/placeholder/800/600?text=Ocean",
+    image: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%233B7EA1'/%3E%3Crect y='300' width='800' height='300' fill='%232A5B7A'/%3E%3Ccircle cx='650' cy='120' r='80' fill='%23FDB813'/%3E%3Cpath d='M0,300 Q200,200 400,300 T800,300' fill='%232A5B7A'/%3E%3Ctext x='400' y='250' font-family='Arial' font-size='30' text-anchor='middle' fill='white'%3EOcean%3C/text%3E%3C/svg%3E",
     title: "Ocean"
-  },
-  { 
-    image: "/api/placeholder/800/600?text=Forest",
-    title: "Forest"
-  },
-  { 
-    image: "/api/placeholder/800/600?text=Desert",
-    title: "Desert"
-  },
-  { 
-    image: "/api/placeholder/800/600?text=Arctic",
-    title: "Arctic"
-  },
-  { 
-    image: "/api/placeholder/800/600?text=Night+Sky",
-    title: "Night Sky"
   }
 ];
 
-// Duplicate the array to make it infinite
-const extendedSlidesData = [...slidesData, ...slidesData, ...slidesData];
+// Duplicate the array to make it look infinite
+const extendedSlidesData = [...slidesData, ...slidesData];
 
-// Shader for the WebGL effect
+// Shader code
 const backgroundCoverUv = `
 vec2 backgroundCoverUv(vec2 screenSize, vec2 imageSize, vec2 uv) {
   float screenRatio = screenSize.x / screenSize.y;
@@ -122,78 +113,168 @@ void main() {
 }
 `;
 
+// Helper function to log if debug is on
+function debugLog(...args) {
+  if (DEBUG) {
+    console.log('[DEBUG]', ...args);
+  }
+}
+
 // Initialize the page
 document.addEventListener('DOMContentLoaded', () => {
-  generateSlides();
-  initControls();
-
-  // Initialize WebGL
-  const gl = new Gl();
-  const slider = new Slider(document.querySelector('.js-slider'), config);
-
-  // Start animation loop
-  const tick = () => {
-    gl.render();
-    slider.render();
-    requestAnimationFrame(tick);
-  };
-
-  tick();
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    store.ww = window.innerWidth;
-    store.wh = window.innerHeight;
-    gl.resize();
-    slider.resize();
-  });
-});
-
-// Initialize the scene properly
-document.addEventListener('DOMContentLoaded', () => {
-  // Wait for the GL renderer to be created
-  setTimeout(() => {
-    const gl = document.querySelector('.dom-gl');
-    if (gl) {
-      // Create a reference to the THREE.Scene
-      gl.scene = new THREE.Scene();
-      
-      // Store the add method for safe access
-      gl.parentNode.add3DObject = function(obj) {
-        if (gl.scene) {
-          gl.scene.add(obj);
-        }
-      };
-    }
-  }, 100); // Small delay to ensure WebGL is initialized
-});
-
-// Generate slide elements
-function generateSlides() {
-  const sliderInner = document.querySelector('.js-slider');
-  const titlesList = document.querySelector('.js-titles');
+  debugLog('DOM loaded, initializing app');
   
-  // First clear any existing slides
-  const existingSlides = document.querySelectorAll('.js-slide');
-  if (existingSlides.length > 2) {
-    // If we already have slides (from the fallback in HTML), use those instead of generating new ones
-    console.log('Using existing fallback slides');
-    
-    // Still need to generate titles
-    slidesData.forEach(slide => {
-      const titleEl = document.createElement('div');
-      titleEl.className = 'titles__title js-title';
-      titleEl.textContent = slide.title;
-      titlesList.appendChild(titleEl);
-    });
-    
+  // First, let's create a simple div to show if WebGL is functioning
+  const debugElement = document.createElement('div');
+  if (DEBUG) {
+    debugElement.style.position = 'fixed';
+    debugElement.style.top = '10px';
+    debugElement.style.left = '10px';
+    debugElement.style.zIndex = 9999;
+    debugElement.style.background = 'rgba(0,0,0,0.7)';
+    debugElement.style.padding = '10px';
+    debugElement.style.color = 'white';
+    debugElement.style.fontFamily = 'monospace';
+    debugElement.textContent = 'Initializing...';
+    document.body.appendChild(debugElement);
+  }
+  
+  // Check for WebGL support
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+      throw new Error('WebGL not supported');
+    }
+    debugLog('WebGL supported');
+    debugElement.textContent = 'WebGL supported ✅';
+  } catch (e) {
+    console.error('WebGL error:', e);
+    debugElement.textContent = 'WebGL error: ' + e.message + ' ❌';
+    // Fall back to showing regular images
+    showFallbackImages();
     return;
   }
   
-  // Clear any existing slides first
-  sliderInner.innerHTML = '';
+  try {
+    // Generate slides for visualization
+    generateSlides();
+    
+    // Initialize controls
+    initControls();
+    
+    // Create WebGL renderer
+    const gl = new Gl(debugElement);
+    window.glInstance = gl;
+    
+    // Create slider
+    const slider = new Slider(document.querySelector('.js-slider'), config, gl, debugElement);
+    window.sliderInstance = slider;
+    
+    // Animation loop
+    const tick = () => {
+      gl.render();
+      slider.render();
+      requestAnimationFrame(tick);
+    };
+    
+    tick();
+    
+    // Resize handler
+    window.addEventListener('resize', () => {
+      store.ww = window.innerWidth;
+      store.wh = window.innerHeight;
+      gl.resize();
+      slider.resize();
+    });
+    
+    // Add a test texture to verify three.js is working
+    if (DEBUG) {
+      debugLog('Creating test shapes');
+      createTestShapes(gl);
+    }
+    
+    // Update debug info
+    if (DEBUG) {
+      debugElement.textContent = 'Initialization complete ✅';
+    }
+  } catch (e) {
+    console.error('Initialization error:', e);
+    debugElement.textContent = 'Error: ' + e.message + ' ❌';
+    // Fall back to showing regular images
+    showFallbackImages();
+  }
+});
+
+// Creates simple Three.js shapes to verify rendering works
+function createTestShapes(gl) {
+  // Create a simple colored cube
+  const geometry = new THREE.BoxGeometry(100, 100, 100);
+  const material = new THREE.MeshBasicMaterial({ 
+    color: 0xff0000,
+    wireframe: true
+  });
   
-  // Generate inline SVG as fallback for each slide
+  const cube = new THREE.Mesh(geometry, material);
+  cube.position.z = -200;
+  cube.position.x = 200;
+  gl.scene.add(cube);
+  
+  // Add animation
+  const animateCube = () => {
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    requestAnimationFrame(animateCube);
+  };
+  
+  animateCube();
+}
+
+// Fallback function to show regular images if WebGL fails
+function showFallbackImages() {
+  const container = document.querySelector('.slider__inner');
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.flexWrap = 'wrap';
+  container.style.justifyContent = 'center';
+  container.style.alignItems = 'center';
+  
+  extendedSlidesData.forEach((slide, index) => {
+    const div = document.createElement('div');
+    div.style.margin = '20px';
+    
+    const img = document.createElement('img');
+    img.src = slide.image;
+    img.alt = slide.title;
+    img.style.maxWidth = '300px';
+    img.style.maxHeight = '200px';
+    img.style.display = 'block';
+    
+    const title = document.createElement('div');
+    title.textContent = slide.title;
+    title.style.textAlign = 'center';
+    title.style.marginTop = '10px';
+    
+    div.appendChild(img);
+    div.appendChild(title);
+    container.appendChild(div);
+  });
+  
+  document.querySelector('.titles').style.display = 'none';
+  document.querySelector('.progress').style.display = 'none';
+}
+
+// Generate slide elements
+function generateSlides() {
+  debugLog('Generating slides');
+  const sliderInner = document.querySelector('.js-slider');
+  const titlesList = document.querySelector('.js-titles');
+  
+  // Clear existing content
+  sliderInner.innerHTML = '';
+  titlesList.innerHTML = '';
+  
+  // Generate slides
   extendedSlidesData.forEach((slide, index) => {
     // Create slide
     const slideEl = document.createElement('div');
@@ -207,16 +288,15 @@ function generateSlides() {
 
     const img = document.createElement('img');
     img.className = 'js-slideimg';
-    
-    // Use data URI SVG as a fallback that will always work
-    const svgContent = encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'><rect width='800' height='600' fill='${index % 2 === 0 ? "#555555" : "#444444"}'/><text x='400' y='300' font-family='Arial' font-size='30' text-anchor='middle' fill='white'>${slide.title}</text></svg>`);
-    img.src = `data:image/svg+xml,${svgContent}`;
-    
-    // Also try to load the original image as a backup
-    img.setAttribute('data-original-src', slide.image);
+    img.src = slide.image;
     img.alt = slide.title;
     img.crossOrigin = 'anonymous';
     img.draggable = false;
+    
+    // For debugging, show the actual images in a visible way
+    if (DEBUG) {
+      img.style.opacity = '0.2'; // Make slightly visible for debugging
+    }
 
     slideInner.appendChild(img);
     slideEl.appendChild(slideInner);
@@ -232,8 +312,8 @@ function generateSlides() {
 
 // Initialize controls panel
 function initControls() {
+  debugLog('Initializing controls');
   const controlsPanel = document.getElementById('controls-panel');
-  const toggleControls = document.getElementById('toggle-controls');
   const togglePanelBtn = document.getElementById('toggle-panel');
   const fullscreenBtn = document.getElementById('fullscreen');
 
@@ -271,6 +351,15 @@ function initControls() {
   setupRangeControl('rgb-shift', 'rgb-shift-value', (value) => {
     config.rgbShift = value;
     document.documentElement.style.setProperty('--rgb-shift', value);
+    
+    // Update all planes
+    if (window.sliderInstance && window.sliderInstance.items) {
+      window.sliderInstance.items.forEach(item => {
+        if (item.plane && item.plane.updateRgbShift) {
+          item.plane.updateRgbShift(value);
+        }
+      });
+    }
   });
 
   setupRangeControl('scale-min', 'scale-min-value', (value) => {
@@ -288,6 +377,11 @@ function initControls() {
 function setupRangeControl(inputId, valueId, callback) {
   const input = document.getElementById(inputId);
   const valueDisplay = document.getElementById(valueId);
+  
+  if (!input || !valueDisplay) {
+    console.warn(`Could not find elements for control: ${inputId}`);
+    return;
+  }
 
   input.addEventListener('input', () => {
     const value = parseFloat(input.value);
@@ -296,26 +390,31 @@ function setupRangeControl(inputId, valueId, callback) {
   });
 }
 
-// Texture loader with better cross-origin handling
-const loader = new THREE.TextureLoader();
-loader.crossOrigin = 'anonymous';
-
-// Create a simple colored texture as a last resort fallback
-function createColorTexture(color) {
+// Create a fallback texture with text
+function createTextTexture(text, color) {
+  debugLog('Creating fallback texture:', text);
   const canvas = document.createElement('canvas');
-  canvas.width = 2;
-  canvas.height = 2;
+  canvas.width = 800;
+  canvas.height = 600;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = color || '#444444';
-  ctx.fillRect(0, 0, 2, 2);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '30px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text || 'Image Placeholder', canvas.width/2, canvas.height/2);
+  
   const texture = new THREE.CanvasTexture(canvas);
-  texture.minFilter = THREE.LinearFilter;
   return texture;
 }
 
 // WebGL handler class
 class Gl {
-  constructor() {
+  constructor(debugElement) {
+    this.debugElement = debugElement;
+    debugLog('Initializing GL');
+    
     this.scene = new THREE.Scene();
     
     this.camera = new THREE.OrthographicCamera(
@@ -323,25 +422,49 @@ class Gl {
       store.ww / 2, 
       store.wh / 2, 
       store.wh / - 2, 
-      1, 
-      10 
+      0.1, 
+      1000 
     );
-    this.camera.lookAt(this.scene.position);
-    this.camera.position.z = 1;
+    this.camera.position.z = 400;
+    this.camera.lookAt(0, 0, 0);
     
-    this.renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true
-    });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(store.ww, store.wh);
-    this.renderer.setClearColor(0xffffff, 0);
+    try {
+      this.renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true
+      });
+      
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setSize(store.ww, store.wh);
+      this.renderer.setClearColor(0x111111, 1);
+      
+      // Add some basic lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      this.scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      directionalLight.position.set(0, 1, 1);
+      this.scene.add(directionalLight);
+      
+      debugLog('WebGL renderer created');
+      if (this.debugElement) {
+        this.debugElement.textContent += '\nWebGL renderer created ✅';
+      }
+    } catch (e) {
+      console.error('Error creating renderer:', e);
+      if (this.debugElement) {
+        this.debugElement.textContent += '\nRenderer Error: ' + e.message + ' ❌';
+      }
+      throw e;
+    }
     
     this.init();
   }
   
   render() {
-    this.renderer.render(this.scene, this.camera);
+    if (this.renderer) {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
   
   resize() {
@@ -350,13 +473,20 @@ class Gl {
     this.camera.top = store.wh / 2;
     this.camera.bottom = store.wh / - 2;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(store.ww, store.wh);
+    
+    if (this.renderer) {
+      this.renderer.setSize(store.ww, store.wh);
+    }
   }
   
   init() {
+    if (!this.renderer) return;
+    
     const domEl = this.renderer.domElement;
     domEl.classList.add('dom-gl');  
     document.body.appendChild(domEl);
+    
+    debugLog('GL initialized, canvas added to DOM');
   }
 }
 
@@ -383,17 +513,24 @@ class GlObject extends THREE.Object3D {
   }
   
   updateX(current) {
-    current && (this.position.x = current + this.pos.x);
+    if (current !== undefined) {
+      this.position.x = current + this.pos.x;
+    }
   }
 }
 
-// Plane geometry and material
+// Texture loader with better cross-origin handling
+const loader = new THREE.TextureLoader();
+loader.crossOrigin = 'anonymous';
+
+// Plane geometry
 const planeGeo = new THREE.PlaneBufferGeometry(1, 1, 32, 32);
 
 // WebGL Plane class
 class Plane extends GlObject {
   init(el) {
     super.init(el);
+    debugLog('Initializing plane for', el);
 
     this.geo = planeGeo;
     this.mat = new THREE.ShaderMaterial({
@@ -406,49 +543,35 @@ class Plane extends GlObject {
       uTime: { value: 0 },
       uTexture: { value: 0 },
       uMeshSize: { value: new THREE.Vector2(this.rect.width, this.rect.height) },
-      uImageSize: { value: new THREE.Vector2(0, 0) },
+      uImageSize: { value: new THREE.Vector2(800, 600) },
       uScale: { value: config.scaleMin },
       uVelo: { value: 0 },
       uRgbShift: { value: config.rgbShift }
     };
 
     this.img = this.el.querySelector('img');
+    debugLog('Loading image:', this.img.src);
     
-    // Create a fallback texture in case image loading fails
-    const createFallbackTexture = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 600;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#555555';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '30px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(this.img.alt || 'Image Placeholder', canvas.width/2, canvas.height/2);
-      
-      const texture = new THREE.CanvasTexture(canvas);
-      return texture;
-    };
-
-    // Try to load the texture, with fallback
+    // Set a default texture immediately
+    const defaultTexture = createTextTexture('Loading ' + this.img.alt);
+    this.mat.uniforms.uTexture.value = defaultTexture;
+    
+    // Try to load the image
     this.texture = loader.load(
       this.img.src, 
       (texture) => {
+        debugLog('Texture loaded successfully:', this.img.src);
         texture.minFilter = THREE.LinearFilter;
         texture.generateMipmaps = false;
-        
         this.mat.uniforms.uTexture.value = texture;
         this.mat.uniforms.uImageSize.value = new THREE.Vector2(texture.image.width, texture.image.height);
       },
-      undefined, // onProgress callback
+      (xhr) => {
+        debugLog('Texture loading progress:', Math.round((xhr.loaded / xhr.total) * 100) + '%');
+      },
       (error) => {
-        // On error, use fallback texture
-        console.warn('Error loading texture:', error);
-        const fallbackTexture = createFallbackTexture();
-        this.mat.uniforms.uTexture.value = fallbackTexture;
-        this.mat.uniforms.uImageSize.value = new THREE.Vector2(800, 600);
+        console.warn('Error loading texture:', error, this.img.src);
+        // Keep using the default texture we already set
       }
     );
 
@@ -456,16 +579,17 @@ class Plane extends GlObject {
     this.mesh.scale.set(this.rect.width, this.rect.height, 1);
     this.add(this.mesh);
     
-    // Get the global scene and add this object to it
-    const gl = document.querySelector('.dom-gl');
-    if (gl) {
-      gl.parentNode.add3DObject && gl.parentNode.add3DObject(this);
-      gl.scene && gl.scene.add(this);
+    // Add to scene
+    if (window.glInstance && window.glInstance.scene) {
+      window.glInstance.scene.add(this);
+      debugLog('Plane added to scene');
+    } else {
+      console.warn('Could not add plane to scene - glInstance not available');
     }
   }
 
   updateRgbShift(value) {
-    if (this.mat && this.mat.uniforms.uRgbShift) {
+    if (this.mat && this.mat.uniforms && this.mat.uniforms.uRgbShift) {
       this.mat.uniforms.uRgbShift.value = value;
     }
   }
@@ -473,16 +597,20 @@ class Plane extends GlObject {
 
 // Slider class for handling drag and scroll behavior
 class Slider {
-  constructor(el, opts = {}) {
+  constructor(el, opts = {}, gl, debugElement) {
     this.bindAll();
 
     this.el = el;
+    this.gl = gl;
+    this.debugElement = debugElement;
     this.opts = Object.assign({
       speed: 2,
       threshold: 50,
       ease: 0.075
     }, opts);
 
+    debugLog('Initializing slider');
+    
     this.ui = {
       items: document.querySelectorAll('.js-slide'),
       titles: document.querySelectorAll('.js-title'),
@@ -517,14 +645,19 @@ class Slider {
     this.events = {
       move: store.isDevice ? 'touchmove' : 'mousemove',
       up: store.isDevice ? 'touchend' : 'mouseup',
-      down: store.isDevice ? 'touchstart' : 'mousedown'
+      down: store.isDevice ? 'touchstart' : 'mousedown',
+      wheel: 'wheel'
     };
     
     this.init();
+    
+    if (this.debugElement) {
+      this.debugElement.textContent += '\nSlider initialized ✅';
+    }
   }
   
   bindAll() {
-    ['onDown', 'onMove', 'onUp', 'resize']
+    ['onDown', 'onMove', 'onUp', 'onWheel', 'resize']
       .forEach(fn => this[fn] = this[fn].bind(this));
   }
 
@@ -542,29 +675,35 @@ class Slider {
   }
 
   on() {
-    const { move, up, down } = this.events;
+    const { move, up, down, wheel } = this.events;
     
     const dragArea = document.querySelector('.js-drag-area');
     
     dragArea.addEventListener(down, this.onDown);
     window.addEventListener(move, this.onMove);
     window.addEventListener(up, this.onUp);
+    window.addEventListener(wheel, this.onWheel);
+    
+    debugLog('Event listeners added');
   }
 
   off() {
-    const { move, up, down } = this.events;
+    const { move, up, down, wheel } = this.events;
     
     const dragArea = document.querySelector('.js-drag-area');
     
     dragArea.removeEventListener(down, this.onDown);
     window.removeEventListener(move, this.onMove);
     window.removeEventListener(up, this.onUp);
+    window.removeEventListener(wheel, this.onWheel);
   }
   
   setup() {
     const { ww } = store;
     const state = this.state;
     const { items, titles } = this.ui;
+    
+    debugLog('Setting up slider with', items.length, 'items');
     
     const { 
       width: wrapWidth, 
@@ -574,6 +713,8 @@ class Slider {
     // Set bounding
     state.max = -(items[items.length - 1].getBoundingClientRect().right - wrapWidth - wrapDiff);
     state.min = 0;
+    
+    debugLog('Slider bounds:', state.min, state.max);
     
     // Global timeline
     this.tl = gsap.timeline({ 
@@ -601,10 +742,14 @@ class Slider {
       scaleX: 1
     }, 0);
     
+    debugLog('GSAP timeline created');
+    
     // Create WebGL planes for each slide
     for (let i = 0; i < items.length; i++) {
       const el = items[i];
       const { left, right, width } = el.getBoundingClientRect();
+      
+      debugLog('Creating plane for slide', i, 'at', left, right, width);
       
       // Create webgl plane
       const plane = new Plane();
@@ -630,6 +775,8 @@ class Slider {
         out: false
       });
     }
+    
+    debugLog('Created', this.items.length, 'webgl planes');
   }
 
   resize() {
@@ -664,6 +811,7 @@ class Slider {
     }
     
     state.flags.resize = false;
+    debugLog('Slider resized');
   }
 
   calc() {
@@ -723,7 +871,6 @@ class Slider {
 
   clampTarget() {
     const state = this.state;
-    
     state.target = gsap.utils.clamp(state.max, 0, state.target);
   }
   
@@ -745,6 +892,7 @@ class Slider {
     on.y = y;
     
     document.querySelector('.js-drag-area').classList.add('grabbing');
+    debugLog('Mouse/touch down at', x, y);
   }
 
   onUp() {
@@ -754,6 +902,7 @@ class Slider {
     state.off = state.target;
     
     document.querySelector('.js-drag-area').classList.remove('grabbing');
+    debugLog('Mouse/touch up, target:', state.target);
   }
 
   onMove(e) {
@@ -773,5 +922,19 @@ class Slider {
 
     state.target = off + (moveX * this.opts.speed);
     this.clampTarget();
+    
+    if (DEBUG && this.debugElement) {
+      this.debugElement.textContent = `Target: ${state.target.toFixed(2)}, Move: ${moveX.toFixed(2)}`;
+    }
+  }
+  
+  onWheel(e) {
+    // Add wheel support
+    e.preventDefault();
+    const state = this.state;
+    state.target += e.deltaY * 0.5;
+    this.clampTarget();
+    
+    debugLog('Wheel event, delta:', e.deltaY, 'target:', state.target);
   }
 }
